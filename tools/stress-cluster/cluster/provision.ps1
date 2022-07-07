@@ -273,12 +273,15 @@ function main()
     }
 
     if ($PSCmdlet.ParameterSetName -eq 'Provisioner') {
+        Write-Host "LOGGING IN with $ProvisionerApplicationId at $TenantId"
         az login `
             --service-principal `
             --username $ProvisionerApplicationId `
             --password $ProvisionerApplicationSecret`
             --tenant $TenantId
         if ($LASTEXITCODE) { exit $LASTEXITCODE }
+    } else {
+        Write-Host "NOT PARAMETER SET"
     }
 
     if (!$Development) {
