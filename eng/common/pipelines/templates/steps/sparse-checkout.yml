@@ -124,7 +124,7 @@ steps:
         $repositories = '${{ convertToJson(parameters.Repositories) }}' -replace '\\', '/' | ConvertFrom-Json -AsHashtable
         foreach ($repo in $Repositories) {
           # Enable global override if there are sparse checkout issues
-          if ("$(DisableSparseCheckout)" == "true") {
+          if ('$(DisableSparseCheckout)' -eq 'true') {
             Clone $repo
           } else {
             SparseCheckoutWithFallback $paths $repo
