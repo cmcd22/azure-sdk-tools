@@ -75,7 +75,7 @@ steps:
 
           # Prevent wildcard expansion in Invoke-Expression (e.g. for checkout path '/*')
           $quotedPaths = $paths | ForEach-Object { "'$_'" }
-          $gitsparsecmd = "git sparse-checkout add $quotedPaths"
+          $gitsparsecmd = "git asdfasdfasdfasdf sparse-checkout add $quotedPaths"
           Write-Host $gitsparsecmd
           Invoke-Expression -Command $gitsparsecmd
           if ($LASTEXITCODE) {
@@ -122,6 +122,7 @@ steps:
                 Clone $repo
               }
             } else {
+              Write-Warning "Sparse checkout disabled, performing full clone"
               Clone $repo
             }
           } finally {
