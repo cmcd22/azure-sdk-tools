@@ -100,35 +100,33 @@ steps:
           }
         }
 
-        function SparseCheckoutWithFallback([Array]$paths, [Hashtable]$repository)
-        {
-            $dir = $repository.WorkingDirectory
-            if (!$dir) {
-              $dir = "./$($repository.Name)"
-            }
-            New-Item $dir -ItemType Directory -Force
-            Push-Location $dir
-
-            try {
-              SparseCheckout $paths $repository
-            } catch {
-              Clone $repository
-            } finally {
-              Pop-Location
-            }
-        }
-
         # Paths may be sourced as a yaml object literal OR a dynamically generated variable json string.
         # If the latter, convertToJson will wrap the 'string' in quotes, so remove them.
         $paths = '${{ convertToJson(parameters.Paths) }}'.Trim('"') | ConvertFrom-Json
         # Replace windows backslash paths, as Azure Pipelines default directories are sometimes formatted like 'D:\a\1\s'
         $repositories = '${{ convertToJson(parameters.Repositories) }}' -replace '\\', '/' | ConvertFrom-Json -AsHashtable
         foreach ($repo in $Repositories) {
-          # Enable global override if there are sparse checkout issues
-          if ('$(DisableSparseCheckout)' -eq 'true') {
-            Clone $repo
-          } else {
-            SparseCheckoutWithFallback $paths $repo
+          $dir = $repository.WorkingDirectory
+          if (!$dir) {
+            $dir = "./$($repository.Name)"
+          }
+          New-Item $dir -ItemType Directory -Force
+          Push-Location $dir
+
+          try {
+            # Enable global override if there are sparse checkout issues
+            if ('$(DisableSparseCheckout)' -ne 'true') {
+              try {
+                SparseCheckout $paths $repository
+              } catch {
+                # Fallback to full clone if sparse checkout is not working properly
+                Clone $repository
+              }
+            } else {
+              Clone $repo
+            }
+          } finally {
+            Pop-Location
           }
         }
       pwsh: true
