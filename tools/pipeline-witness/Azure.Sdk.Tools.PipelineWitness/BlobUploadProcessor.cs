@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.IO;
+    using System.IO.Compression;
     using System.Linq;
     using System.Net;
     using System.Text;
@@ -188,6 +189,82 @@
             {
                 await ProcessBuildLogBundleAsync(bundle);
             }
+
+            if (build.Definition.Id == options.Value.PipelineOwnersDefinitionId)
+            {
+                await UploadPipelineOwnersBlobAsync(account, build, timeline); 
+            }
+        }
+
+        private async Task UploadPipelineOwnersBlobAsync(string account, Build build, Timeline timeline)
+        {
+            try
+            {
+                var blobPath = $"{build.Project.Name}/{build.FinishTime:yyyy/MM/dd}/{build.Id}-{timeline.ChangeId}.jsonl";
+                var blobClient = this.buildFailuresContainerClient.GetBlobClient(blobPath);
+
+                if (await blobClient.ExistsAsync())
+                {
+                    this.logger.LogInformation("Skipping existing build failure blob for build {BuildId}", build.Id);
+                    return;
+                }
+
+                var owners = await ProcessPipelineOwnersBlobAsync(build);
+
+                if (owners == null)
+                {
+                    return;
+                }
+
+                this.logger.LogInformation("Creating owners blob for build {DefinitionId} change {ChangeId}", build.Id, timeline.ChangeId);
+
+                var stringBuilder = new StringBuilder();
+
+                foreach (var owner in owners)
+                {
+                    var contentLine = JsonConvert.SerializeObject(new
+                    {
+                        OrganizationName = account,
+                        BuildDefinitionId = owner.Key,
+                        Owners = owner.Value,
+                        Timestamp = build.FinishTime,
+                        EtlIngestDate = DateTimeOffset.UtcNow
+                    }, jsonSettings);
+                    stringBuilder.AppendLine(contentLine);
+                }
+
+                await blobClient.UploadAsync(new BinaryData(stringBuilder.ToString()));
+            }
+            catch (RequestFailedException ex) when (ex.Status == (int)HttpStatusCode.Conflict)
+            {
+                this.logger.LogInformation("Ignoring exception from existing owners blob for build {BuildId}", build.Id);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Error processing owners blob for build {BuildId}", build.Id);
+                throw;
+            }
+        }
+
+        private async Task<Dictionary<int, string[]>> ProcessPipelineOwnersBlobAsync(Build build)
+        {
+            try
+            {
+                using var artifactStream = await this.buildClient.GetArtifactContentZipAsync(build.Project.Id, build.Id, this.options.Value.PipelineOwnersArtifactName);
+                using var zip = new ZipArchive(artifactStream);
+                var fileEntry = zip.GetEntry(this.options.Value.PipelineOwnersFileName);
+                using var contentStream = fileEntry.Open();
+                using var contentReader = new StreamReader(contentStream);
+                var content = await contentReader.ReadToEndAsync();
+                var ownersDictionary = JsonConvert.DeserializeObject<Dictionary<int, string[]>>(content);
+                return ownersDictionary;
+            }
+            // TODO: mess around with code to find possible exceptiosn 
+            catch (JsonSerializationException ex)
+            {
+                this.logger.LogInformation(ex, "Problem serializing JSON for build {BuildId}", build.Id);
+            }
+            return null; 
         }
 
         private async Task UploadBuildFailureBlobAsync(string account, Build build, Timeline timeline)
@@ -229,7 +306,8 @@
                         RecordId = failure.Record.Id,
                         BuildTimelineId = timeline.Id,
                         ErrorClassification = failure.Classification,
-                     }, jsonSettings);
+                        EtlIngestDate = DateTimeOffset.UtcNow
+                    }, jsonSettings);
                      stringBuilder.AppendLine(contentLine);
                 }
 

@@ -19,4 +19,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\identity-resolution\identity-resolution.csproj" />
+    <ProjectReference Include="..\..\code-owners-parser\CodeOwnersParser\Azure.Sdk.Tools.CodeOwnersParser.csproj" />
+    <ProjectReference Include="..\..\notification-configuration\notification-creator\Azure.Sdk.Tools.NotificationConfiguration.csproj" />
+  </ItemGroup>
+
 </Project>
