@@ -25,7 +25,6 @@ steps:
       script: |
         function Clone([Hashtable]$repository)
         {
-          Write-Warning "Sparse checkout failed, falling back to full clone"
           if (Test-Path .git) {
             Write-Warning "Deleting existing git repository"
             Write-Host "Remove-Item -Force -Recurse ./*"
@@ -120,6 +119,7 @@ steps:
                 SparseCheckout $paths $repository
               } catch {
                 # Fallback to full clone if sparse checkout is not working properly
+                Write-Warning "Sparse checkout failed, falling back to full clone"
                 Clone $repository
               }
             } else {
