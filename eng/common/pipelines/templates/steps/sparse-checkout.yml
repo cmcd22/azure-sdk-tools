@@ -46,7 +46,6 @@ steps:
 
         function SparseCheckout([Array]$paths, [Hashtable]$repository)
         {
-          throw
           if (Test-Path .git/info/sparse-checkout) {
             $hasInitialized = $true
             Write-Host "Repository $($repository.Name) has already been initialized. Skipping this step."
@@ -105,9 +104,9 @@ steps:
         # Replace windows backslash paths, as Azure Pipelines default directories are sometimes formatted like 'D:\a\1\s'
         $repositories = '${{ convertToJson(parameters.Repositories) }}' -replace '\\', '/' | ConvertFrom-Json -AsHashtable
         foreach ($repo in $Repositories) {
-          $dir = $repository.WorkingDirectory
+          $dir = $repo.WorkingDirectory
           if (!$dir) {
-            $dir = "./$($repository.Name)"
+            $dir = "./$($repo.Name)"
           }
           New-Item $dir -ItemType Directory -Force
           Push-Location $dir
@@ -116,11 +115,11 @@ steps:
             # Enable global override if there are sparse checkout issues
             if ('$(DisableSparseCheckout)' -ne 'true') {
               try {
-                SparseCheckout $paths $repository
+                SparseCheckout $paths $repo
               } catch {
                 # Fallback to full clone if sparse checkout is not working properly
                 Write-Warning "Sparse checkout failed, falling back to full clone"
-                Clone $repository
+                Clone $repo
               }
             } else {
               Clone $repo
