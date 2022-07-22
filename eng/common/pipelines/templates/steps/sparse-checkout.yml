@@ -47,6 +47,7 @@ steps:
 
         function SparseCheckout([Array]$paths, [Hashtable]$repository)
         {
+          throw
           if (Test-Path .git/info/sparse-checkout) {
             $hasInitialized = $true
             Write-Host "Repository $($repository.Name) has already been initialized. Skipping this step."
