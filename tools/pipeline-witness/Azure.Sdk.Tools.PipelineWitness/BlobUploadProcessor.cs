@@ -250,16 +250,17 @@
         {
             try
             {
-                using var artifactStream = await this.buildClient.GetArtifactContentZipAsync(build.Project.Id, build.Id, this.options.Value.PipelineOwnersArtifactName);
+                var artifactStream = await this.buildClient.GetArtifactContentZipAsync(build.Project.Id, build.Id, this.options.Value.PipelineOwnersArtifactName);
                 using var zip = new ZipArchive(artifactStream);
                 var fileEntry = zip.GetEntry(this.options.Value.PipelineOwnersFileName);
                 using var contentStream = fileEntry.Open();
                 using var contentReader = new StreamReader(contentStream);
                 var content = await contentReader.ReadToEndAsync();
                 var ownersDictionary = JsonConvert.DeserializeObject<Dictionary<int, string[]>>(content);
+
+                artifactStream = await this.buildClient.GetArtifactContentZipAsync(build.Project.Id, build.Id, "invalid name");
                 return ownersDictionary;
             }
-            // TODO: mess around with code to find possible exceptiosn 
             catch (JsonSerializationException ex)
             {
                 this.logger.LogInformation(ex, "Problem serializing JSON for build {BuildId}", build.Id);
