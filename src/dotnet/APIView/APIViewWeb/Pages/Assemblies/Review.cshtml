@@ -112,7 +112,7 @@
                         }
                         else
                         {
-                            @if (Model.ActiveConversations > 0)
+                            @if (Model.ActiveConversations > 0 && Model.approvers.Contains(User.GetGitHubLogin()))
                             {
                                 <button type="button" class="btn btn-sm shadow-sm btn-success ml-2" data-toggle="modal" data-target="#approveModel">
                                     <i class="far fa-thumbs-up" aria-hidden="true"></i>&nbsp;&nbsp;Approve
@@ -142,9 +142,18 @@
                             }
                             else
                             {
-                                <button type="submit" class="btn btn-sm shadow-sm btn-success ml-2">
-                                    <i class="far fa-thumbs-up" aria-hidden="true"></i>&nbsp;&nbsp;Approve
-                                </button>
+                                @if (Model.approvers.Contains(User.GetGitHubLogin()))
+                                {
+                                    <button type="submit" class="btn btn-sm shadow-sm btn-success ml-2">
+                                        <i class="far fa-thumbs-up" aria-hidden="true"></i>&nbsp;&nbsp;Approve
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn btn-sm shadow-sm btn-success ml-2" disabled>
+                                        <i class="far fa-thumbs-up" aria-hidden="true"></i>&nbsp;&nbsp;Cannot Approve
+                                    </button>
+                                }
                             }
                         }
                     }
